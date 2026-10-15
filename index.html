@@ -43,9 +43,10 @@ input[type=range]{padding:0;height:6px;background:linear-gradient(90deg,#ef4444,
 .sub{background:var(--in);border-radius:16px;padding:12px;margin-bottom:12px}.sub input{background:var(--card)}
 .empty{text-align:center;padding:60px 20px;color:var(--mu)}.empty div{font-size:56px;margin-bottom:10px}.empty b{display:block;color:var(--tx);font-size:18px;margin-bottom:4px}
 small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;font-weight:600}.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}.cat{font-size:12px;color:var(--mu);margin-bottom:2px}
 </style></head><body>
 <header><div class="top"><h1>Food<span>Rank</span></h1><button class="ib" onclick="openSet()" aria-label="Réglages">⚙️</button></div>
-<div class="search"><input id="q" placeholder="Rechercher un aliment…" oninput="render()"></div></header>
+<div class="search"><input id="q" placeholder="Rechercher un aliment…" oninput="render()"></div><div class="chips" id="chips"></div></header>
 <main><div class="formula" id="fdisp"></div><div id="list"></div></main>
 <button class="btn fab" onclick="openEdit()" aria-label="Ajouter">+</button>
 <dialog id="dlg"><form method="dialog" onsubmit="save();return false">
@@ -53,6 +54,7 @@ small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
 <label>Open Food Facts (code-barres ou nom)</label>
 <div class="row"><input id="off" placeholder="ex. 3017620422003"><button type="button" class="btn btn2" style="flex:0 0 auto;margin:6px 0 12px" onclick="lookup()">Chercher</button></div><div id="offr" class="meta" style="margin:-6px 0 10px"></div>
 <label>Nom</label><input id="n" required placeholder="ex. Tajine maison">
+<label>Catégorie</label><select id="c"></select>
 <label>Note de goût <span class="tval"><b id="tv">7</b>/10</span></label><input id="t" type="range" min="1" max="10" value="7" oninput="tv.textContent=this.value">
 <div class="row"><div><label>Calories (kcal)</label><input id="k" type="number" min="0" required></div>
 <div><label>Pour</label><select id="u"><option value="100g">100 g</option><option value="portion">1 portion</option></select></div></div>
@@ -78,24 +80,27 @@ small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
 <script>
 const DEF={w:{A:1,B:1.25,C:1.5,D:2,E:2.5},scale:1};
 let S=JSON.parse(localStorage.gr_set||'null')||structuredClone(DEF);
+const CATS={'Petit-déj':'🥐','Plats':'🍲','Snacks':'🍿','Desserts':'🍰','Boissons':'🥤','Autre':'🍽️'};let F='';
 let D=JSON.parse(localStorage.gr_data||'[]'),cur=null;
 const $=id=>document.getElementById(id);
+const catOf=x=>CATS[x.cat]?x.cat:'Autre';
+function chips(){$('chips').innerHTML=[['','Tous'],...Object.keys(CATS).map(k=>[k,CATS[k]+' '+k])].map(([k,l])=>`<button class="chip${F===k?' on':''}" onclick="F='${k}';render()">${l}</button>`).join('')}
 const persist=()=>{localStorage.gr_data=JSON.stringify(D);localStorage.gr_set=JSON.stringify(S)};
 const cost=x=>Math.max(x.kcal,1)/100*S.w[x.ns];
 const ratio=x=>x.taste/cost(x)*S.scale;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function render(){
+function render(){chips();
  $('fdisp').innerHTML=`<b>Ratio</b> = note ÷ ((kcal ÷ 100) × multiplicateur Nutri-Score) × ${S.scale}<br>A=${S.w.A} · B=${S.w.B} · C=${S.w.C} · D=${S.w.D} · E=${S.w.E} — plus c'est haut, mieux c'est`;
  const q=$('q').value.toLowerCase();
- const L=D.filter(x=>(x.name+' '+(x.notes||'')).toLowerCase().includes(q)).sort((a,b)=>ratio(b)-ratio(a));
+ const L=D.filter(x=>(!F||catOf(x)===F)&&(x.name+' '+(x.notes||'')).toLowerCase().includes(q)).sort((a,b)=>ratio(b)-ratio(a));
  $('list').innerHTML=L.length?L.map((x,i)=>`<div class="card item" style="animation-delay:${i*40}ms"><div class="rank">#${i+1}</div><div class="ratio"><b>${ratio(x).toFixed(2)}</b><small>ratio</small></div>
- <div class="grow"><div class="nm">${esc(x.name)}</div><div class="meta">⭐ ${x.taste}/10 · ${x.kcal} kcal/${x.unit==='portion'?'portion':'100 g'} <span class="ns ${x.ns}">${x.ns}</span>${x.est?'<span class="est">estimé</span>':''}</div>${x.notes?`<div class="notes">${esc(x.notes)}</div>`:''}</div>
+ <div class="grow"><div class="cat">${CATS[catOf(x)]} ${catOf(x)}</div><div class="nm">${esc(x.name)}</div><div class="meta">⭐ ${x.taste}/10 · ${x.kcal} kcal/${x.unit==='portion'?'portion':'100 g'} <span class="ns ${x.ns}">${x.ns}</span>${x.est?'<span class="est">estimé</span>':''}</div>${x.notes?`<div class="notes">${esc(x.notes)}</div>`:''}</div>
  <div class="acts"><button onclick="openEdit('${x.id}')" aria-label="Modifier">✏️</button><button onclick="del('${x.id}')" aria-label="Supprimer">🗑️</button></div></div>`).join(''):(D.length?'<div class="empty"><div>🔎</div><b>Aucun résultat</b>Essayez un autre mot.</div>':'<div class="empty"><div>🥗</div><b>Votre classement est vide</b>Touchez + pour noter votre premier aliment.</div>');
 }
 function openEdit(id){cur=id?D.find(x=>x.id===id):null;const x=cur||{name:'',taste:7,kcal:'',unit:'100g',ns:'C',notes:'',est:false};
- $('dt').textContent=cur?'Modifier':'Nouvel aliment';$('n').value=x.name;$('t').value=x.taste;$('tv').textContent=x.taste;$('k').value=x.kcal;$('u').value=x.unit;$('s').value=x.ns;$('no').value=x.notes||'';$('isEst').value=x.est?'1':'';$('off').value='';$('offr').textContent='';$('estR').textContent='';$('estBox').hidden=true;$('dlg').showModal()}
+ $('dt').textContent=cur?'Modifier':'Nouvel aliment';$('n').value=x.name;$('c').value=catOf(x);$('t').value=x.taste;$('tv').textContent=x.taste;$('k').value=x.kcal;$('u').value=x.unit;$('s').value=x.ns;$('no').value=x.notes||'';$('isEst').value=x.est?'1':'';$('off').value='';$('offr').textContent='';$('estR').textContent='';$('estBox').hidden=true;$('dlg').showModal()}
 $('s').onchange=()=>$('isEst').value='';
-function save(){const x={id:cur?.id||Date.now().toString(36),name:$('n').value.trim(),taste:+$('t').value,kcal:+$('k').value,unit:$('u').value,ns:$('s').value,notes:$('no').value.trim(),est:!!$('isEst').value};
+function save(){const x={id:cur?.id||Date.now().toString(36),name:$('n').value.trim(),cat:$('c').value,taste:+$('t').value,kcal:+$('k').value,unit:$('u').value,ns:$('s').value,notes:$('no').value.trim(),est:!!$('isEst').value};
  if(cur)D[D.indexOf(cur)]=x;else D.push(x);persist();$('dlg').close();render()}
 function del(id){if(confirm('Supprimer ?')){D=D.filter(x=>x.id!==id);persist();render()}}
 // Nutri-Score 2023 (aliments généraux)
@@ -120,7 +125,8 @@ function saveSet(){'ABCDE'.split('').forEach(l=>S.w[l]=+$('w'+l).value||1);S.sca
 function resetSet(){S=structuredClone(DEF);persist();openSet();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({settings:S,items:D},null,2)],{type:'application/json'}));a.download='gout-ratio.json';a.click()}
 function doImp(f){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);D=j.items||j;if(j.settings)S=j.settings;persist();render();alert('Import réussi')}catch(e){alert('Fichier invalide')}};r.readAsText(f.files[0])}
-if(!localStorage.gr_data){D=[{id:'a',name:'Pizza margherita',taste:9,kcal:250,unit:'100g',ns:'C',notes:''},{id:'b',name:'Fraises',taste:8,kcal:32,unit:'100g',ns:'A',notes:''},{id:'c',name:'Tajine maison',taste:9,kcal:140,unit:'100g',ns:'B',notes:'recette de maman',est:true}]}
+if(!localStorage.gr_data){D=[{id:'a',name:'Pizza margherita',cat:'Plats',taste:9,kcal:250,unit:'100g',ns:'C',notes:''},{id:'b',name:'Fraises',cat:'Snacks',taste:8,kcal:32,unit:'100g',ns:'A',notes:''},{id:'c',name:'Tajine maison',cat:'Plats',taste:9,kcal:140,unit:'100g',ns:'B',notes:'recette de maman',est:true}]}
+$('c').innerHTML=Object.keys(CATS).map(k=>`<option value="${k}">${CATS[k]} ${k}</option>`).join('');
 render();if(location.hash==='#add')openEdit();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>
