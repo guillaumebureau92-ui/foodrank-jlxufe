@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FoodRank</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#16a34a"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon.svg"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="FoodRank"><meta name="color-scheme" content="light dark">
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#1b1f1d;--mu:#6b736f;--ac:#16a34a;--ac2:#84cc16;--bd:#e6e9e4;--in:#f1f3ef;--sh:0 1px 2px #0000000d,0 4px 14px #0000000f}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1311;--card:#1a201d;--tx:#eef2ef;--mu:#9aa49f;--bd:#2a322e;--in:#232a26;--sh:0 1px 2px #0006,0 6px 18px #0005}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased}
+header{position:sticky;top:0;z-index:5;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+h1{font-size:28px;font-weight:800;letter-spacing:-.6px;margin:0}h1 span{background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;color:transparent}
+.ib{width:40px;height:40px;border-radius:12px;border:1px solid var(--bd);background:var(--card);font-size:18px;color:var(--tx)}
+.search{position:relative}.search input{padding-left:40px;margin:0}.search:before{content:"🔍";position:absolute;left:13px;top:11px;font-size:15px;opacity:.6}
+main{padding:4px 16px 110px;max-width:600px;margin:auto}
+input,select,textarea{width:100%;padding:12px 14px;font:inherit;font-size:16px;color:var(--tx);background:var(--in);border:1.5px solid transparent;border-radius:14px;margin:6px 0 12px;outline:none;transition:.2s}
+input:focus,select:focus,textarea:focus{border-color:var(--ac);background:var(--card)}
+label{font-size:13px;font-weight:600;color:var(--mu)}
+.formula{font-size:12.5px;color:var(--mu);background:var(--card);border:1px dashed var(--bd);border-radius:14px;padding:10px 12px;margin:6px 0 14px;line-height:1.5}.formula b{color:var(--tx)}
+.card{background:var(--card);border-radius:20px;padding:14px;margin-bottom:12px;box-shadow:var(--sh);animation:up .35s ease both}
+@keyframes up{from{opacity:0;transform:translateY(8px)}}
+.item{display:flex;gap:12px;align-items:center}
+.rank{font-size:13px;font-weight:800;color:var(--mu);width:26px}
+.item:nth-child(1) .rank{color:#d4a017}.item:nth-child(2) .rank{color:#9ca3af}.item:nth-child(3) .rank{color:#c2773a}
+.ratio{min-width:64px;padding:8px 6px;border-radius:16px;text-align:center;color:#fff;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 4px 12px #16a34a40}
+.ratio b{display:block;font-size:20px;letter-spacing:-.5px}.ratio small{font-size:10px;opacity:.9;text-transform:uppercase;letter-spacing:.5px}
+.grow{flex:1;min-width:0}.nm{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:13px;color:var(--mu);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ns{display:inline-block;min-width:24px;height:22px;padding:0 7px;border-radius:11px;color:#fff;text-align:center;font-weight:800;font-size:12px;line-height:22px}
+.A{background:#038141}.B{background:#85bb2f}.C{background:#fecb02;color:#333}.D{background:#ee8100}.E{background:#e63e11}
+.est{font-size:11px;padding:2px 7px;border-radius:8px;background:var(--in);color:var(--mu)}
+.notes{font-size:13px;color:var(--mu);font-style:italic;margin-top:4px}
+.acts{display:flex;flex-direction:column;gap:6px}.acts button{width:36px;height:36px;border-radius:11px;border:0;background:var(--in);font-size:15px}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:14px;padding:13px 16px;font:inherit;font-size:15px;font-weight:700;transition:transform .1s}.btn:active{transform:scale(.97)}
+.btn2{background:var(--in);color:var(--tx)}
+.fab{position:fixed;right:20px;bottom:calc(24px + env(safe-area-inset-bottom));width:62px;height:62px;border-radius:20px;font-size:32px;font-weight:400;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 10px 24px #16a34a55;z-index:6}
+dialog{border:0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:600px;max-height:92vh;margin:auto auto 0;border-radius:26px 26px 0 0;background:var(--card);color:var(--tx);overflow-y:auto}
+dialog[open]{animation:sheet .32s cubic-bezier(.2,.9,.3,1)}dialog::backdrop{background:#0008;backdrop-filter:blur(2px)}
+@keyframes sheet{from{transform:translateY(100%)}}
+dialog:before{content:"";display:block;width:42px;height:5px;border-radius:3px;background:var(--bd);margin:4px auto 10px}
+dialog h3{font-size:21px;margin:4px 0 14px;letter-spacing:-.3px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.tval{float:right;font-size:18px;color:var(--ac);font-weight:800}
+input[type=range]{padding:0;height:6px;background:linear-gradient(90deg,#ef4444,#f59e0b,#16a34a);accent-color:var(--ac);margin:16px 0 20px}
+.sub{background:var(--in);border-radius:16px;padding:12px;margin-bottom:12px}.sub input{background:var(--card)}
+.empty{text-align:center;padding:60px 20px;color:var(--mu)}.empty div{font-size:56px;margin-bottom:10px}.empty b{display:block;color:var(--tx);font-size:18px;margin-bottom:4px}
+small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
+</style></head><body>
+<header><div class="top"><h1>Food<span>Rank</span></h1><button class="ib" onclick="openSet()" aria-label="Réglages">⚙️</button></div>
+<div class="search"><input id="q" placeholder="Rechercher un aliment…" oninput="render()"></div></header>
+<main><div class="formula" id="fdisp"></div><div id="list"></div></main>
+<button class="btn fab" onclick="openEdit()" aria-label="Ajouter">+</button>
+<dialog id="dlg"><form method="dialog" onsubmit="save();return false">
+<h3 id="dt">Nouvel aliment</h3>
+<label>Open Food Facts (code-barres ou nom)</label>
+<div class="row"><input id="off" placeholder="ex. 3017620422003"><button type="button" class="btn btn2" style="flex:0 0 auto;margin:6px 0 12px" onclick="lookup()">Chercher</button></div><div id="offr" class="meta" style="margin:-6px 0 10px"></div>
+<label>Nom</label><input id="n" required placeholder="ex. Tajine maison">
+<label>Note de goût <span class="tval"><b id="tv">7</b>/10</span></label><input id="t" type="range" min="1" max="10" value="7" oninput="tv.textContent=this.value">
+<div class="row"><div><label>Calories (kcal)</label><input id="k" type="number" min="0" required></div>
+<div><label>Pour</label><select id="u"><option value="100g">100 g</option><option value="portion">1 portion</option></select></div></div>
+<label>Nutri-Score</label>
+<div class="row"><select id="s"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option></select>
+<button type="button" class="btn btn2" style="flex:0 0 auto;margin:6px 0 12px" onclick="estBox.hidden=!estBox.hidden">✨ Estimer</button></div>
+<div id="estBox" hidden class="sub"><small>Valeurs approximatives pour 100 g · algorithme officiel Nutri-Score 2023</small>
+<div class="row"><div><label>kcal</label><input id="e_k" type="number" step="any"></div><div><label>Sucres g</label><input id="e_su" type="number" step="any"></div></div>
+<div class="row"><div><label>AG saturés g</label><input id="e_sf" type="number" step="any"></div><div><label>Sel g</label><input id="e_sa" type="number" step="any"></div></div>
+<div class="row"><div><label>Fibres g</label><input id="e_fi" type="number" step="any"></div><div><label>Protéines g</label><input id="e_pr" type="number" step="any"></div></div>
+<label>Fruits/légumes/légumineuses %</label><input id="e_fv" type="number" step="any">
+<button type="button" class="btn" onclick="doEst()">Calculer</button> <span id="estR"></span></div>
+<input type="hidden" id="isEst" value="">
+<label>Notes</label><textarea id="no" rows="2" placeholder="Optionnel"></textarea>
+<div class="row"><button type="button" class="btn btn2" onclick="dlg.close()">Annuler</button><button class="btn">Enregistrer</button></div>
+</form></dialog>
+<dialog id="set"><h3>Réglages</h3><label>Multiplicateurs Nutri-Score</label>
+<div id="wts"></div><label>Facteur d'échelle</label><input id="sc" type="number" step="any">
+<div class="row"><button class="btn btn2" onclick="resetSet()">Défaut</button><button class="btn" onclick="saveSet()">OK</button></div>
+<hr><div class="row"><button class="btn btn2" onclick="exp()">⬇️ Exporter</button><button class="btn btn2" onclick="imp.click()">⬆️ Importer</button></div>
+<input type="file" id="imp" accept=".json,application/json" hidden onchange="doImp(this)">
+<p><button class="btn btn2" style="width:100%" onclick="set.close()">Fermer</button></p></dialog>
+<script>
+const DEF={w:{A:1,B:1.25,C:1.5,D:2,E:2.5},scale:1};
+let S=JSON.parse(localStorage.gr_set||'null')||structuredClone(DEF);
+let D=JSON.parse(localStorage.gr_data||'[]'),cur=null;
+const $=id=>document.getElementById(id);
+const persist=()=>{localStorage.gr_data=JSON.stringify(D);localStorage.gr_set=JSON.stringify(S)};
+const cost=x=>Math.max(x.kcal,1)/100*S.w[x.ns];
+const ratio=x=>x.taste/cost(x)*S.scale;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+ $('fdisp').innerHTML=`<b>Ratio</b> = note ÷ ((kcal ÷ 100) × multiplicateur Nutri-Score) × ${S.scale}<br>A=${S.w.A} · B=${S.w.B} · C=${S.w.C} · D=${S.w.D} · E=${S.w.E} — plus c'est haut, mieux c'est`;
+ const q=$('q').value.toLowerCase();
+ const L=D.filter(x=>(x.name+' '+(x.notes||'')).toLowerCase().includes(q)).sort((a,b)=>ratio(b)-ratio(a));
+ $('list').innerHTML=L.length?L.map((x,i)=>`<div class="card item" style="animation-delay:${i*40}ms"><div class="rank">#${i+1}</div><div class="ratio"><b>${ratio(x).toFixed(2)}</b><small>ratio</small></div>
+ <div class="grow"><div class="nm">${esc(x.name)}</div><div class="meta">⭐ ${x.taste}/10 · ${x.kcal} kcal/${x.unit==='portion'?'portion':'100 g'} <span class="ns ${x.ns}">${x.ns}</span>${x.est?'<span class="est">estimé</span>':''}</div>${x.notes?`<div class="notes">${esc(x.notes)}</div>`:''}</div>
+ <div class="acts"><button onclick="openEdit('${x.id}')" aria-label="Modifier">✏️</button><button onclick="del('${x.id}')" aria-label="Supprimer">🗑️</button></div></div>`).join(''):(D.length?'<div class="empty"><div>🔎</div><b>Aucun résultat</b>Essayez un autre mot.</div>':'<div class="empty"><div>🥗</div><b>Votre classement est vide</b>Touchez + pour noter votre premier aliment.</div>');
+}
+function openEdit(id){cur=id?D.find(x=>x.id===id):null;const x=cur||{name:'',taste:7,kcal:'',unit:'100g',ns:'C',notes:'',est:false};
+ $('dt').textContent=cur?'Modifier':'Nouvel aliment';$('n').value=x.name;$('t').value=x.taste;$('tv').textContent=x.taste;$('k').value=x.kcal;$('u').value=x.unit;$('s').value=x.ns;$('no').value=x.notes||'';$('isEst').value=x.est?'1':'';$('off').value='';$('offr').textContent='';$('estR').textContent='';$('estBox').hidden=true;$('dlg').showModal()}
+$('s').onchange=()=>$('isEst').value='';
+function save(){const x={id:cur?.id||Date.now().toString(36),name:$('n').value.trim(),taste:+$('t').value,kcal:+$('k').value,unit:$('u').value,ns:$('s').value,notes:$('no').value.trim(),est:!!$('isEst').value};
+ if(cur)D[D.indexOf(cur)]=x;else D.push(x);persist();$('dlg').close();render()}
+function del(id){if(confirm('Supprimer ?')){D=D.filter(x=>x.id!==id);persist();render()}}
+// Nutri-Score 2023 (aliments généraux)
+function pts(v,th){let p=0;for(const t of th)if(v>t)p++;return p}
+function nutriScore({kcal=0,sugar=0,sat=0,salt=0,fibre=0,prot=0,fv=0}){
+ const kj=kcal*4.184;
+ const N=pts(kj,[335,670,1005,1340,1675,2010,2345,2680,3015,3350])+pts(sugar,[3.4,6.8,10,14,17,20,24,27,31,34,37,41,44,48,51])+pts(sat,[1,2,3,4,5,6,7,8,9,10])+pts(salt,[0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.6,3.8,4]);
+ const fvp=fv>80?5:fv>60?2:fv>40?1:0,fip=pts(fibre,[3,4.1,5.2,6.3,7.4]),prp=pts(prot,[2.4,4.8,7.2,9.6,12,14,17]);
+ const P=fvp+fip+(N>=11?0:prp),sc=N-P;
+ return {score:sc,grade:sc<=0?'A':sc<=2?'B':sc<=10?'C':sc<=18?'D':'E'}}
+function doEst(){const g=i=>+$(i).value||0;const r=nutriScore({kcal:g('e_k'),sugar:g('e_su'),sat:g('e_sf'),salt:g('e_sa'),fibre:g('e_fi'),prot:g('e_pr'),fv:g('e_fv')});
+ $('s').value=r.grade;$('isEst').value='1';$('estR').innerHTML=` → <span class="ns ${r.grade}">${r.grade}</span> (score ${r.score})`;if(!$('k').value&&g('e_k')){$('k').value=g('e_k');$('u').value='100g'}}
+async function lookup(){const q=$('off').value.trim();if(!q)return;$('offr').textContent='Recherche…';
+ try{let p;if(/^\d{6,14}$/.test(q)){const r=await (await fetch(`https://world.openfoodfacts.org/api/v2/product/${q}.json?fields=product_name,nutriments,nutriscore_grade`)).json();p=r.product}
+ else{const r=await (await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&json=1&page_size=1&fields=product_name,nutriments,nutriscore_grade`)).json();p=r.products?.[0]}
+ if(!p){$('offr').textContent='Introuvable.';return}
+ const k=p.nutriments?.['energy-kcal_100g'];const g=(p.nutriscore_grade||'').toUpperCase();
+ if(p.product_name)$('n').value=p.product_name;if(k!=null){$('k').value=Math.round(k);$('u').value='100g'}if('ABCDE'.includes(g)&&g){$('s').value=g;$('isEst').value=''}
+ $('offr').textContent=`Trouvé : ${p.product_name||'?'} — ${k??'?'} kcal/100 g, Nutri-Score ${g||'inconnu'}`}catch(e){$('offr').textContent='Erreur réseau.'}}
+function openSet(){$('wts').innerHTML='ABCDE'.split('').map(l=>`<div class="row" style="align-items:center"><span class="ns ${l}" style="flex:0 0 34px">${l}</span><input id="w${l}" type="number" step="0.05" value="${S.w[l]}"></div>`).join('');$('sc').value=S.scale;$('set').showModal()}
+function saveSet(){'ABCDE'.split('').forEach(l=>S.w[l]=+$('w'+l).value||1);S.scale=+$('sc').value||1;persist();render();$('set').close()}
+function resetSet(){S=structuredClone(DEF);persist();openSet();render()}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({settings:S,items:D},null,2)],{type:'application/json'}));a.download='gout-ratio.json';a.click()}
+function doImp(f){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);D=j.items||j;if(j.settings)S=j.settings;persist();render();alert('Import réussi')}catch(e){alert('Fichier invalide')}};r.readAsText(f.files[0])}
+if(!localStorage.gr_data){D=[{id:'a',name:'Pizza margherita',taste:9,kcal:250,unit:'100g',ns:'C',notes:''},{id:'b',name:'Fraises',taste:8,kcal:32,unit:'100g',ns:'A',notes:''},{id:'c',name:'Tajine maison',taste:9,kcal:140,unit:'100g',ns:'B',notes:'recette de maman',est:true}]}
+render();if(location.hash==='#add')openEdit();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
