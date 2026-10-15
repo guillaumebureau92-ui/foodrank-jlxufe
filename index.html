@@ -44,6 +44,9 @@ input[type=range]{padding:0;height:6px;background:linear-gradient(90deg,#ef4444,
 .empty{text-align:center;padding:60px 20px;color:var(--mu)}.empty div{font-size:56px;margin-bottom:10px}.empty b{display:block;color:var(--tx);font-size:18px;margin-bottom:4px}
 small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
 .chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;font-weight:600}.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}.cat{font-size:12px;color:var(--mu);margin-bottom:2px}
+.ac{position:relative}.sug{position:absolute;left:0;right:0;top:calc(100% - 8px);background:var(--card);border:1px solid var(--bd);border-radius:14px;box-shadow:var(--sh);z-index:9;max-height:300px;overflow-y:auto}
+.sug div{padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center}.sug div:last-child{border:0}.sug .sn{flex:1;font-weight:600;font-size:15px}.sug .sm{font-size:12px;color:var(--mu);font-weight:400}
+.mine{font-size:10px;background:var(--ac);color:#fff;border-radius:6px;padding:1px 5px}.plist div{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)}.plist span{flex:1}.plist button{border:0;background:var(--in);border-radius:9px;padding:6px 9px}
 </style></head><body>
 <header><div class="top"><h1>Food<span>Rank</span></h1><button class="ib" onclick="openSet()" aria-label="Réglages">⚙️</button></div>
 <div class="search"><input id="q" placeholder="Rechercher un aliment…" oninput="render()"></div><div class="chips" id="chips"></div></header>
@@ -51,7 +54,9 @@ small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
 <button class="btn fab" onclick="openEdit()" aria-label="Ajouter">+</button>
 <dialog id="dlg"><form method="dialog" onsubmit="save();return false">
 <h3 id="dt">Nouvel aliment</h3>
-<label>Open Food Facts (code-barres ou nom)</label>
+<label>🔎 Catalogue (plats, aliments…)</label>
+<div class="ac"><input id="cq" placeholder="ex. kebab, couscous, burger" autocomplete="off" oninput="sugg()"><div class="sug" id="sug" hidden></div></div><div id="cinfo" class="meta" style="margin:-6px 0 10px"></div>
+<label>Pas trouvé ? Open Food Facts (code-barres ou nom)</label>
 <div class="row"><input id="off" placeholder="ex. 3017620422003"><button type="button" class="btn btn2" style="flex:0 0 auto;margin:6px 0 12px" onclick="lookup()">Chercher</button></div><div id="offr" class="meta" style="margin:-6px 0 10px"></div>
 <label>Nom</label><input id="n" required placeholder="ex. Tajine maison">
 <label>Catégorie</label><select id="c"></select>
@@ -69,14 +74,16 @@ small{color:var(--mu)}hr{border:0;border-top:1px solid var(--bd);margin:16px 0}
 <button type="button" class="btn" onclick="doEst()">Calculer</button> <span id="estR"></span></div>
 <input type="hidden" id="isEst" value="">
 <label>Notes</label><textarea id="no" rows="2" placeholder="Optionnel"></textarea>
+<button type="button" class="btn btn2" style="width:100%;margin-bottom:12px" onclick="addMine()">➕ Ajouter à mon catalogue</button>
 <div class="row"><button type="button" class="btn btn2" onclick="dlg.close()">Annuler</button><button class="btn">Enregistrer</button></div>
 </form></dialog>
 <dialog id="set"><h3>Réglages</h3><label>Multiplicateurs Nutri-Score</label>
 <div id="wts"></div><label>Facteur d'échelle</label><input id="sc" type="number" step="any">
 <div class="row"><button class="btn btn2" onclick="resetSet()">Défaut</button><button class="btn" onclick="saveSet()">OK</button></div>
-<hr><div class="row"><button class="btn btn2" onclick="exp()">⬇️ Exporter</button><button class="btn btn2" onclick="imp.click()">⬆️ Importer</button></div>
+<hr><label>Mon catalogue</label><div class="plist" id="plist"></div><hr><div class="row"><button class="btn btn2" onclick="exp()">⬇️ Exporter</button><button class="btn btn2" onclick="imp.click()">⬆️ Importer</button></div>
 <input type="file" id="imp" accept=".json,application/json" hidden onchange="doImp(this)">
 <p><button class="btn btn2" style="width:100%" onclick="set.close()">Fermer</button></p></dialog>
+<script src="catalog.js"></script>
 <script>
 const DEF={w:{A:1,B:1.25,C:1.5,D:2,E:2.5},scale:1};
 let S=JSON.parse(localStorage.gr_set||'null')||structuredClone(DEF);
@@ -85,6 +92,23 @@ let D=JSON.parse(localStorage.gr_data||'[]'),cur=null;
 const $=id=>document.getElementById(id);
 const catOf=x=>CATS[x.cat]?x.cat:'Autre';
 function chips(){$('chips').innerHTML=[['','Tous'],...Object.keys(CATS).map(k=>[k,CATS[k]+' '+k])].map(([k,l])=>`<button class="chip${F===k?' on':''}" onclick="F='${k}';render()">${l}</button>`).join('')}
+const CK={P:'Petit-déj',L:'Plats',S:'Snacks',D:'Desserts',B:'Boissons',A:'Autre'};
+const CATALOG=CATALOG_RAW.trim().split('\n').map(l=>{const[n,c,k,p,ns,sy]=l.split('|');return{name:n,cat:CK[c],kcal:+k,portion:+p,ns,syn:sy||''}});
+let MY=JSON.parse(localStorage.gr_cat||'[]');const saveMy=()=>localStorage.gr_cat=JSON.stringify(MY);
+const norm=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[œ]/g,'oe');
+let SUG=[];
+function sugg(){const q=norm($('cq').value.trim());const box=$('sug');if(q.length<2){box.hidden=true;return}
+ const all=[...MY.map(x=>({...x,mine:1})),...CATALOG];
+ SUG=all.map(x=>{const n=norm(x.name),sy=norm(x.syn||'');let sc=n.startsWith(q)?3:n.includes(q)?2:sy.includes(q)?1:0;return[sc,x]}).filter(a=>a[0]).sort((a,b)=>b[0]-a[0]||(b[1].mine||0)-(a[1].mine||0)).slice(0,12).map(a=>a[1]);
+ box.innerHTML=SUG.length?SUG.map((x,i)=>`<div onclick="pick(${i})"><span>${CATS[x.cat]||'🍽️'}</span><span class="sn">${esc(x.name)}${x.mine?' <span class="mine">perso</span>':''}<br><span class="sm">${x.kcal} kcal/${x.unit==='portion'?'portion':'100 g'}${x.portion?` · portion ~${x.portion} g ≈ ${Math.round(x.kcal*x.portion/100)} kcal`:''}</span></span><span class="ns ${x.ns}">${x.ns}</span></div>`).join(''):'<div class="sm">Aucun résultat — essayez Open Food Facts ci-dessous.</div>';box.hidden=false}
+function pick(i){const x=SUG[i];$('n').value=x.name;$('c').value=CATS[x.cat]?x.cat:'Autre';$('k').value=x.kcal;$('u').value=x.unit||'100g';$('s').value=x.ns;$('isEst').value=x.mine?(x.est?'1':''):'1';
+ $('cinfo').textContent=x.portion?`Portion type ~${x.portion} g ≈ ${Math.round(x.kcal*x.portion/100)} kcal · Nutri-Score estimé. Il ne reste qu'à noter le goût !`:'Prérempli depuis votre catalogue.';$('sug').hidden=true;$('cq').value=''}
+function addMine(){const n=$('n').value.trim(),k=+$('k').value;if(!n||!$('k').value){alert('Renseignez au moins le nom et les calories.');return}
+ const x={name:n,cat:$('c').value,kcal:k,unit:$('u').value,ns:$('s').value,est:!!$('isEst').value};const j=MY.findIndex(m=>norm(m.name)===norm(n));if(j>=0)MY[j]=x;else MY.push(x);saveMy();alert('Ajouté à votre catalogue ✔')}
+function plist(){$('plist').innerHTML=MY.length?MY.map((x,i)=>`<div><span>${CATS[x.cat]||''} ${esc(x.name)} · ${x.kcal} kcal · <span class="ns ${x.ns}">${x.ns}</span></span><button onclick="editMine(${i})">✏️</button><button onclick="delMine(${i})">🗑️</button></div>`).join(''):'<small>Vide. Utilisez « Ajouter à mon catalogue » dans la fiche d\'ajout.</small>'}
+function editMine(i){const x=MY[i];const n=prompt('Nom',x.name);if(n===null)return;const k=prompt('Calories (kcal/'+(x.unit==='portion'?'portion':'100 g')+')',x.kcal);if(k===null)return;const ns=(prompt('Nutri-Score (A-E)',x.ns)||x.ns).toUpperCase();
+ x.name=n.trim()||x.name;x.kcal=+k||x.kcal;if('ABCDE'.includes(ns)&&ns.length===1)x.ns=ns;saveMy();plist()}
+function delMine(i){if(confirm('Supprimer « '+MY[i].name+' » du catalogue ?')){MY.splice(i,1);saveMy();plist()}}
 const persist=()=>{localStorage.gr_data=JSON.stringify(D);localStorage.gr_set=JSON.stringify(S)};
 const cost=x=>Math.max(x.kcal,1)/100*S.w[x.ns];
 const ratio=x=>x.taste/cost(x)*S.scale;
@@ -98,7 +122,7 @@ function render(){chips();
  <div class="acts"><button onclick="openEdit('${x.id}')" aria-label="Modifier">✏️</button><button onclick="del('${x.id}')" aria-label="Supprimer">🗑️</button></div></div>`).join(''):(D.length?'<div class="empty"><div>🔎</div><b>Aucun résultat</b>Essayez un autre mot.</div>':'<div class="empty"><div>🥗</div><b>Votre classement est vide</b>Touchez + pour noter votre premier aliment.</div>');
 }
 function openEdit(id){cur=id?D.find(x=>x.id===id):null;const x=cur||{name:'',taste:7,kcal:'',unit:'100g',ns:'C',notes:'',est:false};
- $('dt').textContent=cur?'Modifier':'Nouvel aliment';$('n').value=x.name;$('c').value=catOf(x);$('t').value=x.taste;$('tv').textContent=x.taste;$('k').value=x.kcal;$('u').value=x.unit;$('s').value=x.ns;$('no').value=x.notes||'';$('isEst').value=x.est?'1':'';$('off').value='';$('offr').textContent='';$('estR').textContent='';$('estBox').hidden=true;$('dlg').showModal()}
+ $('dt').textContent=cur?'Modifier':'Nouvel aliment';$('n').value=x.name;$('c').value=catOf(x);$('t').value=x.taste;$('tv').textContent=x.taste;$('k').value=x.kcal;$('u').value=x.unit;$('s').value=x.ns;$('no').value=x.notes||'';$('isEst').value=x.est?'1':'';$('off').value='';$('offr').textContent='';$('estR').textContent='';$('estBox').hidden=true;$('cq').value='';$('sug').hidden=true;$('cinfo').textContent='';$('dlg').showModal()}
 $('s').onchange=()=>$('isEst').value='';
 function save(){const x={id:cur?.id||Date.now().toString(36),name:$('n').value.trim(),cat:$('c').value,taste:+$('t').value,kcal:+$('k').value,unit:$('u').value,ns:$('s').value,notes:$('no').value.trim(),est:!!$('isEst').value};
  if(cur)D[D.indexOf(cur)]=x;else D.push(x);persist();$('dlg').close();render()}
@@ -120,13 +144,13 @@ async function lookup(){const q=$('off').value.trim();if(!q)return;$('offr').tex
  const k=p.nutriments?.['energy-kcal_100g'];const g=(p.nutriscore_grade||'').toUpperCase();
  if(p.product_name)$('n').value=p.product_name;if(k!=null){$('k').value=Math.round(k);$('u').value='100g'}if('ABCDE'.includes(g)&&g){$('s').value=g;$('isEst').value=''}
  $('offr').textContent=`Trouvé : ${p.product_name||'?'} — ${k??'?'} kcal/100 g, Nutri-Score ${g||'inconnu'}`}catch(e){$('offr').textContent='Erreur réseau.'}}
-function openSet(){$('wts').innerHTML='ABCDE'.split('').map(l=>`<div class="row" style="align-items:center"><span class="ns ${l}" style="flex:0 0 34px">${l}</span><input id="w${l}" type="number" step="0.05" value="${S.w[l]}"></div>`).join('');$('sc').value=S.scale;$('set').showModal()}
+function openSet(){plist();$('wts').innerHTML='ABCDE'.split('').map(l=>`<div class="row" style="align-items:center"><span class="ns ${l}" style="flex:0 0 34px">${l}</span><input id="w${l}" type="number" step="0.05" value="${S.w[l]}"></div>`).join('');$('sc').value=S.scale;$('set').showModal()}
 function saveSet(){'ABCDE'.split('').forEach(l=>S.w[l]=+$('w'+l).value||1);S.scale=+$('sc').value||1;persist();render();$('set').close()}
 function resetSet(){S=structuredClone(DEF);persist();openSet();render()}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({settings:S,items:D},null,2)],{type:'application/json'}));a.download='gout-ratio.json';a.click()}
 function doImp(f){const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);D=j.items||j;if(j.settings)S=j.settings;persist();render();alert('Import réussi')}catch(e){alert('Fichier invalide')}};r.readAsText(f.files[0])}
 if(!localStorage.gr_data){D=[{id:'a',name:'Pizza margherita',cat:'Plats',taste:9,kcal:250,unit:'100g',ns:'C',notes:''},{id:'b',name:'Fraises',cat:'Snacks',taste:8,kcal:32,unit:'100g',ns:'A',notes:''},{id:'c',name:'Tajine maison',cat:'Plats',taste:9,kcal:140,unit:'100g',ns:'B',notes:'recette de maman',est:true}]}
 $('c').innerHTML=Object.keys(CATS).map(k=>`<option value="${k}">${CATS[k]} ${k}</option>`).join('');
-render();if(location.hash==='#add')openEdit();
+render();if(location.hash==='#add')openEdit();if(location.hash==='#kebab'){openEdit();$('cq').value='kebab';sugg()}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>
